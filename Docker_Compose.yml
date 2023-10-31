@@ -1,0 +1,114 @@
+version: "3.9"
+
+services:
+
+  # Proxy server
+  proxy:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    container_name: proxy
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      
+       # Application server
+  application_server:
+    image: tomcat:9.0.65-jre11
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./application:/usr/local/tomcat/webapps/ROOT
+
+  # Client
+  client:
+    image: nginx:latest
+    volumes:
+      - ./client:/usr/share/nginx/html
+
+  # Geoserver
+  geoserver:
+    image: geoserver/geoserver:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./geoserver/data:/geoserver/data
+
+  # Neo4j database
+  neo4j:
+    image: neo4j:latest
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: my-password
+
+  # Health care provider information service
+  health-care-provider-information-service:
+    build: ./health-care-provider-information-service
+    ports:
+      - "9080:9080"
+    depends_on:
+      - postgres
+      - neo4j
+
+  # Appointment scheduling service
+  appointment-scheduling-service:
+    build: ./appointment-scheduling-service
+    ports:
+      - "9081:9081"
+    depends_on:
+      - postgres
+      - neo4j
+
+  # Data intergration service that handles data from wearable fitness trackers
+  data-intergration-service:
+    build: ./data-intergration-service
+    ports:
+      - "9082:9082"
+    depends_on:
+      - postgres
+      - neo4j
+
+  # User authentication service
+  user-authentication-service:
+    build: ./user-authentication-service
+    ports:
+      - "9083:9083"
+    depends_on:
+      - postgres
+
+  # Electronic health care system
+  electronic-health-care-system:
+    build: ./electronic-health-care-system
+    ports:
+      - "9084:9084"
+    depends_on:
+      - postgres
+      - neo4j
+
+  # Geospatial data services that handles routing
+  geospatial-data-services:
+    build: ./geospatial-data-services
+    ports:
+      - "9085:9085"
+    depends_on:
+      - postgres
+      - geoserver
+
+  # Processing and visualisation of health care data and user location data in real time
+  processing-and-visualisation-service:
+    build: ./processing-and-visualisation-service
+    ports:
+      - "9086:9086"
+    depends_on:
+      - postgres
+      - neo4j
+      - geospatial-data-services
+
+
